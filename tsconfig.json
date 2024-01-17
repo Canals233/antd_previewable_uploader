@@ -16,6 +16,6 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"],
+  "include": ["src", "rollup.config.cjs"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

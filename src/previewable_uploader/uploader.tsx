@@ -2,7 +2,8 @@ import { RcFile, UploadFile } from "antd/es/upload";
 import { SetStateAction, useEffect, useState } from "react";
 import { Image, Upload } from "antd";
 import {
-
+	defaultVividImageTypes,
+	defaultVividVideoTypes,
 	pastedFileFormat,
 	playableImageRender,
 	playableUploadItemRender,
@@ -14,12 +15,22 @@ interface PreviewUploaderProps {
 	oldFileList: Array<String>;
 	disable?: boolean;
 	maxCount?: number;
+	vividImageTypes?: Array<string>;
+	vividVideoTypes?: Array<string>;
+	showWarning?: boolean;
+	multiple?: boolean;
+	directory?: boolean;
 }
 
 const PreviewUploader = ({
 	oldFileList,
 	disable = false,
 	maxCount = 6,
+	vividImageTypes = defaultVividImageTypes,
+	vividVideoTypes = defaultVividVideoTypes,
+	showWarning = true,
+	multiple = true,
+	directory = false,
 }: PreviewUploaderProps) => {
 	const [previewVisible, setPreviewVisible] = useState(false);
 	const [filelist, setFilelist] = useState<Array<any>>([]);
@@ -27,7 +38,7 @@ const PreviewUploader = ({
 	const [hover, setHover] = useState(false);
 
 	useEffect(() => {
-		console.log("hover", hover);
+		// console.log("hover", hover);
 		const handlePaste = (event: ClipboardEvent) => {
 			if (!hover) return;
 			if (!event.clipboardData) return;
@@ -36,8 +47,15 @@ const PreviewUploader = ({
 				let originfile = item.getAsFile();
 				// 处理获取到的文件，可以将其存储到状态或进行其他操作
 				let file = pastedFileFormat(originfile!);
-				console.log("Pasted File:", file);
-				if (testVividFile(file as any as RcFile)) {
+				// console.log("Pasted File:", file);
+				if (
+					testVividFile(
+						file,
+						vividImageTypes,
+						vividVideoTypes,
+						showWarning
+					)
+				) {
 					setListOnUploadChange(
 						{ file: file, fileList: filelist.concat(file) },
 						setFilelist
@@ -87,11 +105,13 @@ const PreviewUploader = ({
 			onMouseLeave={() => setHover(false)}
 		>
 			<Upload
+				multiple={multiple}
+				directory={directory}
 				fileList={filelist}
 				listType="picture-card"
 				showUploadList={true}
 				onPreview={handlePreview}
-				beforeUpload={testVividFile}
+				// beforeUpload={(file)=>testVividFile(file,vividImageTypes,vividVideoTypes,showWarning)}
 				customRequest={() => {}}
 				itemRender={playableUploadItemRender}
 				onChange={(uploadInfo) => {

@@ -1,4 +1,5 @@
 import PreviewUploader from "./previewable_uploader/uploader";
+import AntdUpload from "./test/antd";
 
 
 function App() {
@@ -6,6 +7,7 @@ function App() {
     <div>hello worold</div>
     <PreviewUploader oldFileList={[]} />
     <PreviewUploader oldFileList={[]} />
+    <AntdUpload/>
     </>
 }
 
