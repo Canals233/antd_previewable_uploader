@@ -5,7 +5,7 @@ const { babel } = require("@rollup/plugin-babel");
 
 /**@type {import('rollup').RollupOptions} */
 module.exports = {
-	input: "./src/previewable_uploader/index.tsx",
+	input: "./src/index.tsx",
 	output: {
 		dir: "./dist",
 		format: "esm",
@@ -21,5 +21,5 @@ module.exports = {
 			babelHelpers: "bundled",
 		}),
 	],
-	external: ["antd","react","react-dom","@ant-design/icons","@ant-design/icons/lib"],
+	external: ["antd","react","react/jsx-runtime","react-dom","@ant-design/icons","@ant-design/icons/lib"],
 };
