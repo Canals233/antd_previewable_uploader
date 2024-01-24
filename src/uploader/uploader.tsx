@@ -1,4 +1,4 @@
-import { RcFile, UploadFile } from "antd/es/upload";
+import { UploadFile } from "antd/es/upload";
 import { SetStateAction, useEffect, useState } from "react";
 import { Image, Upload } from "antd";
 import {
@@ -12,7 +12,7 @@ import {
 } from "./handler";
 import { PlusOutlined } from "@ant-design/icons";
 interface PreviewUploaderProps {
-	oldFileList: Array<String>;
+	uploadFileList: Array<String>;
 	disable?: boolean;
 	maxCount?: number;
 	vividImageTypes?: Array<string>;
@@ -20,10 +20,16 @@ interface PreviewUploaderProps {
 	showWarning?: boolean;
 	multiple?: boolean;
 	directory?: boolean;
+	maxSize?: number;
+    minSize?: number;
+	globalPaste?: boolean;
+	customUploadListRender?: Function;
+	customPreviewListRender?: Function;
+	customPasteHandler?: (event: ClipboardEvent) => void;
 }
 
 const PreviewUploader = ({
-	oldFileList,
+	uploadFileList,
 	disable = false,
 	maxCount = 6,
 	vividImageTypes = defaultVividImageTypes,
@@ -31,6 +37,12 @@ const PreviewUploader = ({
 	showWarning = true,
 	multiple = true,
 	directory = false,
+	globalPaste = false,
+	maxSize = 1024 * 1024 * 50,
+    minSize = 0,
+	customUploadListRender,
+	customPreviewListRender,
+	customPasteHandler,
 }: PreviewUploaderProps) => {
 	const [previewVisible, setPreviewVisible] = useState(false);
 	const [filelist, setFilelist] = useState<Array<any>>([]);
@@ -40,7 +52,11 @@ const PreviewUploader = ({
 	useEffect(() => {
 		// console.log("hover", hover);
 		const handlePaste = (event: ClipboardEvent) => {
-			if (!hover) return;
+			if (customPasteHandler) {
+				customPasteHandler(event);
+				return;
+			}
+			if (!hover && !globalPaste) return;
 			if (!event.clipboardData) return;
 			const item = event.clipboardData.items[0];
 			if (item.kind === "file") {
@@ -49,16 +65,19 @@ const PreviewUploader = ({
 				let file = pastedFileFormat(originfile!);
 				// console.log("Pasted File:", file);
 				if (
-					testVividFile(
-						file,
+					testVividFile(file, {
 						vividImageTypes,
 						vividVideoTypes,
-						showWarning
-					)
+						showMessage: showWarning,
+					})
 				) {
 					setListOnUploadChange(
 						{ file: file, fileList: filelist.concat(file) },
-						setFilelist
+						setFilelist,
+                        {
+                            maxSize,
+                            minSize
+                        }
 					);
 				}
 			}
@@ -73,12 +92,12 @@ const PreviewUploader = ({
 
 	useEffect(() => {
 		setFilelist(
-			oldFileList.map((item) => ({
+			uploadFileList.map((item) => ({
 				uid: Math.random(), //映射uid，不然preview的时候会出错
 				thumbUrl: item,
 			}))
 		);
-	}, [oldFileList]);
+	}, [uploadFileList]);
 
 	const handlePreview = (file: UploadFile) => {
 		const resList = filelist.map((file) => {
@@ -113,7 +132,12 @@ const PreviewUploader = ({
 				onPreview={handlePreview}
 				// beforeUpload={(file)=>testVividFile(file,vividImageTypes,vividVideoTypes,showWarning)}
 				customRequest={() => {}}
-				itemRender={playableUploadItemRender}
+				itemRender={(...args) => {
+					if (customUploadListRender) {
+						return customUploadListRender(...args);
+					}
+					return playableUploadItemRender(...args);
+				}}
 				onChange={(uploadInfo) => {
 					setListOnUploadChange(uploadInfo, setFilelist);
 				}}
@@ -131,7 +155,12 @@ const PreviewUploader = ({
 					visible: previewVisible,
 					onVisibleChange: (vis: boolean) => setPreviewVisible(vis),
 					current: currentPreview,
-					imageRender: playableImageRender,
+					imageRender: (...args) => {
+						if (customPreviewListRender) {
+							return customPreviewListRender(...args);
+						}
+						return playableImageRender(...args);
+					},
 				}}
 			/>
 		</div>

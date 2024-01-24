@@ -63,42 +63,52 @@ const CheckExist = (fileList: any[], file: any) => {
 	);
 };
 
-const testVividFile = (
-	file: any,
-	vividImageTypes = defaultVividVideoTypes,
-	vividVideoTypes = defaultVividVideoTypes,
-	showMessage = true
-) => {
+type testVividFileOptionProps = {
+	vividImageTypes?: string[];
+	vividVideoTypes?: string[];
+	showMessage?: boolean;
+	maxSize?: number;
+	minSize?: number;
+	fileTypeWarning?: string;
+	fileSizeWarning?: string;
+};
+
+const testVividFile = (file: any, options: testVividFileOptionProps) => {
+	const {
+		vividImageTypes = defaultVividImageTypes,
+		vividVideoTypes = defaultVividVideoTypes,
+		showMessage = true,
+		maxSize = 1024 * 1024 * 50,
+		minSize = 0,
+		fileTypeWarning = "仅支持图片、视频文件 图片仅支持：JPG、PNG格式 视频仅支持：mp4、flv、avi、wmv、mov格式 ",
+		fileSizeWarning = "文件过大",
+	} = options;
 	//测试文件是否符合要求
 	const isJpgOrPng = vividImageTypes.includes(file.type);
 	const isVideo =
 		vividVideoTypes.includes(file.type) || file.name.endsWith("flv");
-	const isLessTha50M = file.size / 1024 / 1024 < 50;
-
-	// console.log(file.type, isJpgOrPng, isVideo, isLessTha50M, "testVividFile");
+	const isvividSize = file.size < maxSize || file.size > minSize;
+	console.log(file.size, maxSize, minSize);
 	if (showMessage) {
 		if (!isJpgOrPng && !isVideo) {
-			message.error(
-				"仅支持图片、视频文件 图片仅支持：JPG、PNG格式 视频仅支持：mp4、flv、avi、wmv、mov格式 "
-			);
-		} else if (!isLessTha50M) {
-			message.error("单个文件大小不超过50M");
+			message.error(fileTypeWarning);
+		} else if (!isvividSize) {
+			message.error(fileSizeWarning);
 		}
 	}
-	return (isJpgOrPng || isVideo) && isLessTha50M;
+	return (isJpgOrPng || isVideo) && isvividSize;
 };
 
-const getDisplayableFileList = (rawList: any[]) => {
+const getDisplayableFileList = (
+	rawList: any[],
+	testOptions?: testVividFileOptionProps
+) => {
 	const fileList = rawList
 		.filter((file) => {
 			// console.log(file, "filter file");
 			if (file.alreadyExist) return false;
 			if (file.thumbUrl?.startsWith("http")) return true;
-			return testVividFile(
-				file,
-				defaultVividImageTypes,
-				defaultVividVideoTypes
-			);
+			return testVividFile(file, testOptions || {});
 		})
 		.map((file) => {
 			// console.log(file, "map file");
@@ -126,7 +136,8 @@ const getDisplayableFileList = (rawList: any[]) => {
 
 const setListOnUploadChange = (
 	{ fileList, file }: any,
-	setUploadFileList: Function
+	setUploadFileList: Function,
+	testOptions?: testVividFileOptionProps
 ) => {
 	if (CheckExist(fileList, file)) {
 		message.warning(`${file.name}已存在`);
@@ -134,13 +145,13 @@ const setListOnUploadChange = (
 	}
 	// console.log(file, "file", fileList, "fileList");
 
-	const resList = getDisplayableFileList(fileList);
+	const resList = getDisplayableFileList(fileList, testOptions);
 
 	setUploadFileList(resList);
 };
 
 //这个是在image.previewGroup里面的imageRender
-const playableImageRender = (originNode: any) => {
+const playableImageRender = (originNode: any, _info: any) => {
 	// console.log(originNode,'image');
 	let url: string = originNode?.props?.src;
 	let [src, type] = url?.split("#") || [];
@@ -176,7 +187,12 @@ const playableImageRender = (originNode: any) => {
 };
 
 //这个是在Upload里面的itemRender
-const playableUploadItemRender = (originNode: any, file: any) => {
+const playableUploadItemRender = (
+	originNode: any,
+	file: any,
+	_fileList: any,
+	_actions: any
+) => {
 	//覆盖掉antd返回的vdom的第一个子节点，就是展示图片的那个节点
 	let remoteUrl: string = file?.thumbUrl;
 	// console.log(originNode, file);

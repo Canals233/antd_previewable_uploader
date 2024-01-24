@@ -2,6 +2,24 @@
     "name": "antd_previewable_uploader",
     "version": "1.0.0",
     "type": "module",
+    "author": "canals",
+    "description": "基于ant design的支持粘贴上传,查重,预览的图片视频上传的简单react组件",
+    "keywords": [
+        "ant design",
+        "upload",
+        "previewable",
+        "react",
+        "typescript",
+        "paste"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Canals233/antd_previewable_uploader"
+    },
+    "license": "ISC",
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "dev": "vite",
         "preview": "vite preview",

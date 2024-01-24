@@ -9,7 +9,7 @@ module.exports = {
 	output: {
 		dir: "./dist",
 		format: "esm",
-		sourcemap: true,
+		// sourcemap: true,
 		preserveModules: true,
 	},
 	plugins: [
