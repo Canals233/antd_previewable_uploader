@@ -26,6 +26,7 @@ interface PreviewUploaderProps {
 	customUploadListRender?: Function;
 	customPreviewListRender?: Function;
 	customPasteHandler?: (event: ClipboardEvent) => void;
+    customButton?: any;
 }
 
 const PreviewUploader = ({
@@ -43,6 +44,7 @@ const PreviewUploader = ({
 	customUploadListRender,
 	customPreviewListRender,
 	customPasteHandler,
+    customButton,
 }: PreviewUploaderProps) => {
 	const [previewVisible, setPreviewVisible] = useState(false);
 	const [filelist, setFilelist] = useState<Array<any>>([]);
@@ -130,7 +132,6 @@ const PreviewUploader = ({
 				listType="picture-card"
 				showUploadList={true}
 				onPreview={handlePreview}
-				// beforeUpload={(file)=>testVividFile(file,vividImageTypes,vividVideoTypes,showWarning)}
 				customRequest={() => {}}
 				itemRender={(...args) => {
 					if (customUploadListRender) {
@@ -143,8 +144,9 @@ const PreviewUploader = ({
 				}}
 				disabled={disable}
 				maxCount={maxCount}
+                
 			>
-				{filelist.length >= maxCount ? null : uploadButton}
+				{filelist.length >= maxCount ? null : customButton ? customButton : uploadButton}
 			</Upload>
 			<Image.PreviewGroup
 				items={filelist}
