@@ -21,18 +21,21 @@ interface PreviewUploaderProps {
 	multiple?: boolean;
 	directory?: boolean;
 	maxSize?: number;
-    minSize?: number;
+	minSize?: number;
 	globalPaste?: boolean;
 	customUploadListRender?: Function;
 	customPreviewListRender?: Function;
 	customPasteHandler?: (event: ClipboardEvent) => void;
-    customButton?: any;
+	customButton?: any;
+	fileTypeWarning?: string;
+	fileSizeWarning?: string;
+	enableflv?: boolean;
 }
 
 const PreviewUploader = ({
 	uploadFileList,
 	disable = false,
-	maxCount = 6,
+	maxCount = 999,
 	vividImageTypes = defaultVividImageTypes,
 	vividVideoTypes = defaultVividVideoTypes,
 	showWarning = true,
@@ -40,11 +43,14 @@ const PreviewUploader = ({
 	directory = false,
 	globalPaste = false,
 	maxSize = 1024 * 1024 * 50,
-    minSize = 0,
+	minSize = 0,
 	customUploadListRender,
 	customPreviewListRender,
 	customPasteHandler,
-    customButton,
+	customButton,
+	fileTypeWarning,
+	fileSizeWarning,
+	enableflv = true,
 }: PreviewUploaderProps) => {
 	const [previewVisible, setPreviewVisible] = useState(false);
 	const [filelist, setFilelist] = useState<Array<any>>([]);
@@ -66,22 +72,21 @@ const PreviewUploader = ({
 				// 处理获取到的文件，可以将其存储到状态或进行其他操作
 				let file = pastedFileFormat(originfile!);
 				// console.log("Pasted File:", file);
-				if (
-					testVividFile(file, {
+
+				setListOnUploadChange(
+					{ file: file, fileList: filelist.concat(file) },
+					setFilelist,
+					{
+						maxSize,
+						minSize,
+						fileTypeWarning,
+						fileSizeWarning,
 						vividImageTypes,
 						vividVideoTypes,
-						showMessage: showWarning,
-					})
-				) {
-					setListOnUploadChange(
-						{ file: file, fileList: filelist.concat(file) },
-						setFilelist,
-                        {
-                            maxSize,
-                            minSize
-                        }
-					);
-				}
+						showWarning: showWarning,
+						enableflv,
+					}
+				);
 			}
 		};
 
@@ -99,7 +104,7 @@ const PreviewUploader = ({
 				thumbUrl: item,
 			}))
 		);
-	}, [uploadFileList]);
+	}, []);
 
 	const handlePreview = (file: UploadFile) => {
 		const resList = filelist.map((file) => {
@@ -140,13 +145,25 @@ const PreviewUploader = ({
 					return playableUploadItemRender(...args);
 				}}
 				onChange={(uploadInfo) => {
-					setListOnUploadChange(uploadInfo, setFilelist);
+					setListOnUploadChange(uploadInfo, setFilelist, {
+						maxSize,
+						minSize,
+						fileTypeWarning,
+						fileSizeWarning,
+						vividImageTypes,
+						vividVideoTypes,
+						showWarning,
+						enableflv,
+					});
 				}}
 				disabled={disable}
 				maxCount={maxCount}
-                
 			>
-				{filelist.length >= maxCount ? null : customButton ? customButton : uploadButton}
+				{filelist.length >= maxCount
+					? null
+					: customButton
+					? customButton
+					: uploadButton}
 			</Upload>
 			<Image.PreviewGroup
 				items={filelist}

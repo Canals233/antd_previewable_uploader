@@ -1,5 +1,4 @@
-import { Image as AntImage, Tooltip, message } from "antd";
-import { RcFile } from "antd/es/upload";
+import { message } from "antd";
 import React from "react";
 
 const defaultVividImageTypes = ["image/jpeg", "image/png"];
@@ -11,7 +10,9 @@ const defaultVividVideoTypes = [
 	"video/flv",
 	"video/quicktime",
 	"video/x-ms-wmv",
+	"video/webm",
 ];
+const playableVideoTypes = ["video/mp4", "video/webm"];
 
 function checkVideoSrc(src: string) {
 	// console.log(src, 'src');
@@ -42,15 +43,6 @@ function checkNeedMP4(src: string) {
 	}
 }
 
-const getBase64 = (file: RcFile): Promise<string> => {
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.readAsDataURL(file);
-		reader.onload = () => resolve(reader.result as string);
-		reader.onerror = (error) => reject(error);
-	});
-};
-
 const CheckExist = (fileList: any[], file: any) => {
 	//检查文件是否已经存在
 	let filtedList = fileList.filter((arrFile) => arrFile.uid !== file.uid);
@@ -66,30 +58,34 @@ const CheckExist = (fileList: any[], file: any) => {
 type testVividFileOptionProps = {
 	vividImageTypes?: string[];
 	vividVideoTypes?: string[];
-	showMessage?: boolean;
+	showWarning?: boolean;
 	maxSize?: number;
 	minSize?: number;
 	fileTypeWarning?: string;
 	fileSizeWarning?: string;
+	enableflv?: boolean;
 };
 
 const testVividFile = (file: any, options: testVividFileOptionProps) => {
 	const {
 		vividImageTypes = defaultVividImageTypes,
 		vividVideoTypes = defaultVividVideoTypes,
-		showMessage = true,
+		showWarning = true,
 		maxSize = 1024 * 1024 * 50,
 		minSize = 0,
 		fileTypeWarning = "仅支持图片、视频文件 图片仅支持：JPG、PNG格式 视频仅支持：mp4、flv、avi、wmv、mov格式 ",
 		fileSizeWarning = "文件过大",
+		enableflv = true,
 	} = options;
 	//测试文件是否符合要求
+
 	const isJpgOrPng = vividImageTypes.includes(file.type);
 	const isVideo =
-		vividVideoTypes.includes(file.type) || file.name.endsWith("flv");
+		vividVideoTypes.includes(file.type) ||
+		(enableflv && file.name?.endsWith("flv"));
 	const isvividSize = file.size < maxSize || file.size > minSize;
-	console.log(file.size, maxSize, minSize);
-	if (showMessage) {
+	console.log(file, maxSize, minSize);
+	if (showWarning) {
 		if (!isJpgOrPng && !isVideo) {
 			message.error(fileTypeWarning);
 		} else if (!isvividSize) {
@@ -105,25 +101,35 @@ const getDisplayableFileList = (
 ) => {
 	const fileList = rawList
 		.filter((file) => {
+			//进行过滤，控制上传文件是否有效
 			// console.log(file, "filter file");
 			if (file.alreadyExist) return false;
 			if (file.thumbUrl?.startsWith("http")) return true;
 			return testVividFile(file, testOptions || {});
 		})
 		.map((file) => {
+			//进行转换，将上传的文件转换成可展示的文件
 			// console.log(file, "map file");
 			const url = file.thumbUrl || file.url;
-			file.status = "done";
+			file.status = "done"; //这里设置done才能显示图片，否则会显示loading进度条
 			file.src = file.thumbUrl;
 			if (url?.startsWith("http")) {
 				if (checkNeedMP4(url)) {
+					//服务端转码MP4后的文件，视频文件后缀名不一定是mp4，所以需要加上.mp4后缀
 					file.thumbUrl = url + ".mp4";
 				}
 				return file;
 			}
 			file.thumbUrl = URL.createObjectURL(file.originFileObj);
-			if (file.type?.includes("video")) {
-				file.thumbUrl += "#video";
+			//创建一个blob url，这个url可以直接用于video的src
+			if (file.type?.includes("video") || file.name?.endsWith("flv")) {
+				//加上tag，用于区分是video还是image
+				if (playableVideoTypes.includes(file.type)) {
+					//如果是mp4或者webm,
+					file.thumbUrl += "#playvideo";
+				} else {
+					file.thumbUrl += "#video";
+				}
 			} else if (file.type?.includes("image")) {
 				file.thumbUrl += "#image";
 			}
@@ -155,10 +161,10 @@ const playableImageRender = (originNode: any, _info: any) => {
 	// console.log(originNode,'image');
 	let url: string = originNode?.props?.src;
 	let [src, type] = url?.split("#") || [];
-	// window.URL.revokeObjectURL(src); //释放内存
 	if (url?.includes("blob")) {
 		//存在blob，说明是上传的文件，而不是远程的url
-		if (type === "video") {
+		if (type === "playvideo") {
+            //可直接播放的视频
 			return (
 				<video
 					key={Math.random()}
@@ -167,6 +173,12 @@ const playableImageRender = (originNode: any, _info: any) => {
 					src={url}
 					controls
 				/>
+			);
+		} else if (type === "video") {
+			return (
+				<div key={Math.random()} style={{ textAlign: "center" }}>
+					此视频格式在上传转码后才可播放
+				</div>
 			);
 		} else if (type === "image") {
 			return originNode;
@@ -198,8 +210,8 @@ const playableUploadItemRender = (
 	// console.log(originNode, file);
 	if (file?.type?.includes("video") || file?.name?.endsWith("flv")) {
 		//存在type，说明是上传的文件，而不是远程的url
-		if (file.type === "video/mp4") {
-			const url = URL.createObjectURL(file.originFileObj);
+		if (playableVideoTypes.includes(file.type)) {
+			const url = file.thumbUrl;
 			const newNode = React.cloneElement(originNode, {
 				children: [
 					<video
@@ -226,7 +238,7 @@ const playableUploadItemRender = (
 	} else if (remoteUrl?.includes("video") || checkVideoSrc(remoteUrl)) {
 		//远程url情况,除了本来就是mp4的，其他的都加上.mp4后缀
 		if (checkNeedMP4(remoteUrl)) remoteUrl = remoteUrl + ".mp4";
-		React.cloneElement(originNode, {
+		return React.cloneElement(originNode, {
 			children: [
 				<video
 					key={Math.random()}
@@ -257,11 +269,11 @@ const pastedFileFormat = (file: File) => {
 export {
 	defaultVividImageTypes,
 	defaultVividVideoTypes,
+	playableVideoTypes,
 	testVividFile,
 	setListOnUploadChange,
 	getDisplayableFileList,
 	playableImageRender,
 	playableUploadItemRender,
 	pastedFileFormat,
-	getBase64,
 };
