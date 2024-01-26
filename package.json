@@ -1,6 +1,6 @@
 {
     "name": "antd_previewable_uploader",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "type": "module",
     "author": "canals",
     "description": "基于ant design的支持粘贴上传,查重,预览的图片视频上传的简单react组件",
